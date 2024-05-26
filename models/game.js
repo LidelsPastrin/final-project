@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
-// Импорт модели для связывания 
+// Не забываем импортировать модель, на которую ссылаемся
+const userModel = require('./user');
 const categoryModel = require('./category');
 
 const gameSchema = new mongoose.Schema({
@@ -23,6 +24,10 @@ const gameSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  users: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: userModel,
+  }],
   categories: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: categoryModel,
