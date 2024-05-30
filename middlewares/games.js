@@ -2,10 +2,22 @@
 const games = require("../models/game");
 
 const findAllGames = async (req, res, next) => {
-  req.gamesArray = await games.find({}).populate("categories").populate("users");
+  // Поиск всех игр в проекте по заданной категории
+  if(req.query["categories.name"]) { 
+    req.gamesArray = await games.findGameByCategory(req.query["categories.name"]);
+    next();
+    return;
+  }
+  // Поиск всех игр в проекте
+  req.gamesArray = await games
+    .find({})
+    .populate("categories")
+    .populate({
+      path: "users",
+      select: "-password" // Исключим данные о паролях пользователей
+    })
   next();
 };
-
 const createGame = async (req, res, next) => {
   console.log("POST /games");
   try {
@@ -51,6 +63,11 @@ const deleteGame = async (req, res, next) => {
 }; 
 
 const checkEmptyFields = async (req, res, next) => {
+  console.log("checkEmptyFields")
+  if(req.isVoteRequest) {
+    next();
+   return;
+  }
   if (
     !req.body.title ||
     !req.body.description ||
@@ -70,14 +87,18 @@ const checkEmptyFields = async (req, res, next) => {
 
 const checkIfCategoriesAvaliable = async (req, res, next) => {
   // Проверяем наличие жанра у игры
+  console.log( "checkIfCategoriesAvaliable")
+  if(req.isVoteRequest) {
+    next();
+    return;
+  }
 if (!req.body.categories || req.body.categories.length === 0) {
   res.setHeader("Content-Type", "application/json");
       res.status(400).send(JSON.stringify({ message: "Выбери хотя бы одну категорию" }));
 } else {
   next();
 }
-}; 
-// Файл middlewares/games.js
+};
 
 const checkIfUsersAreSafe = async (req, res, next) => {
   // Проверим, есть ли users в теле запроса
@@ -109,6 +130,14 @@ const checkIsGameExists = async (req, res, next) => {
   }
 };
 
+const checkIsVoteRequest = async (req, res, next) => {
+  // Если в запросе присылают только поле users
+if (Object.keys(req.body).length === 1 && req.body.users) {
+  req.isVoteRequest = true;
+}
+next();
+};
+
 module.exports = {
     findAllGames, 
     createGame,
@@ -118,5 +147,6 @@ module.exports = {
     checkEmptyFields,
     checkIfCategoriesAvaliable,
     checkIfUsersAreSafe,
-    checkIsGameExists
+    checkIsGameExists,
+    checkIsVoteRequest
   }; 
